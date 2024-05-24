@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "mrnn"
+version = "0.1.0"
+description = "Multidirectional Recurrent Neural Network for Time Series Imputing"
+authors = ["viniciusnvcosta <viniciusnvcosta47@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^1.4.0"
+numpy = "^1.26.4"
+matplotlib = "^3.9.0"
+tabulate = "^0.9.0"
+tensorflow = "^2.16.1"
+scikit-learn = "^1.2"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "^21.12b0"
+isort = "^5.10.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
