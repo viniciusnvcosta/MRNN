@@ -47,22 +47,15 @@ class MRNN:
         """Train RNN for each feature.
 
         Args:
-          - x: incomplete data
-          - m: mask matrix
-          - t: time matrix
-          - f: feature index
+        - x: incomplete data
+        - m: mask matrix
+        - t: time matrix
+        - f: feature index
         """
-
-        # input place holders
-        target = keras.Input(shape=(self.seq_len, 1), dtype=tf.float32)
-        mask = keras.Input(shape=(self.seq_len, 1), dtype=tf.float32)
 
         # Build rnn object
         rnn = biGRUCell(3, self.h_dim, 1)
-        outputs = rnn.get_outputs()
-        loss = tf.sqrt(tf.reduce_mean(tf.square(mask * outputs - mask * target)))
         optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
-        train_op = optimizer.minimize(loss)
 
         # Training
         for i in range(self.iteration):
@@ -80,19 +73,36 @@ class MRNN:
                 batch_idx, : (self.seq_len - 1), :
             ]
 
+            forward_input_tensor = tf.convert_to_tensor(forward_input, dtype=tf.float32)
+            backward_input_tensor = tf.convert_to_tensor(
+                backward_input, dtype=tf.float32
+            )
+
             with tf.GradientTape() as tape:
-                outputs = rnn.get_outputs(forward_input, backward_input)
-                step_loss = tf.sqrt(
-                    tf.reduce_mean(tf.square(mask * outputs - mask * target))
+                mask_tensor = tf.convert_to_tensor(
+                    np.transpose(np.dstack(m[batch_idx, :, f]), [1, 2, 0]),
+                    dtype=tf.float32,
                 )
-            gradients = tape.gradient(step_loss, rnn.trainable_variables)
-            optimizer.apply_gradients(zip(gradients, rnn.trainable_variables))
+                target_tensor = tf.convert_to_tensor(
+                    np.transpose(np.dstack(x[batch_idx, :, f]), [1, 2, 0]),
+                    dtype=tf.float32,
+                )
+
+                outputs = rnn(forward_input_tensor, backward_input_tensor)
+                step_loss = tf.sqrt(
+                    tf.reduce_mean(
+                        tf.square(mask_tensor * outputs - mask_tensor * target_tensor)
+                    )
+                )
+
+                gradients = tape.gradient(step_loss, rnn.trainable_variables)
+                optimizer.apply_gradients(zip(gradients, rnn.trainable_variables))
+
+            if i % 100 == 0:  # Print loss every 100 iterations
+                print(f"Iteration {i}, Loss: {step_loss.numpy()}")
 
         # Save model
-        inputs = {"forward_input": rnn.inputs, "backward_input": rnn.inputs_rev}
-        outputs = {"imputation": outputs}
-
-        save_file_name = "tmp/mrnn_imputation/rnn_feature_" + str(f + 1) + "/"
+        save_file_name = f"tmp/mrnn_imputation/rnn_feature_{f + 1}/"
         tf.saved_model.save(rnn, save_file_name)
 
     def rnn_predict(self, x, m, t):
@@ -147,9 +157,7 @@ class MRNN:
 
         # Reshape the data for FC train
         x = np.reshape(x, [self.no * self.seq_len, self.dim])
-        rnn_imputed_x = np.reshape(
-            rnn_imputed_x, [self.no * self.seq_len, self.dim]
-        )
+        rnn_imputed_x = np.reshape(rnn_imputed_x, [self.no * self.seq_len, self.dim])
         m = np.reshape(m, [self.no * self.seq_len, self.dim])
 
         # input place holders
