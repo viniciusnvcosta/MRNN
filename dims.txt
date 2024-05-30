@@ -1,0 +1,13 @@
+
+# data loading phase
+(no_of_observations, dim) = data.shape
+(732, 5)
+
+(no_of_observations, sequence_length, no_of_features/dims) = x.shape
+(725, 7, 5)
+
+# interpolation phase - bi-RNN
+
+for 2000 iterations
+
+forward_input =  np.dstack((x[:, :, f], m[:, :, f], t[:, :, f])) = 

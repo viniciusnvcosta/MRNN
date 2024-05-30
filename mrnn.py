@@ -55,18 +55,20 @@ class MRNN:
 
         # Build rnn object
         rnn = biGRUCell(3, self.h_dim, 1)
-        optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
 
-        # Training
+        optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
+        # Training loop
         for i in range(self.iteration):
             # Batch selection
             batch_idx = np.random.permutation(x.shape[0])[: self.batch_size]
 
             temp_input = np.dstack((x[:, :, f], m[:, :, f], t[:, :, f]))
-            temp_input_reverse = np.flip(temp_input, 1)
 
             forward_input = np.zeros([self.batch_size, self.seq_len, 3])
+            # replace all elements from the second time step onwards
             forward_input[:, 1:, :] = temp_input[batch_idx, : (self.seq_len - 1), :]
+
+            temp_input_reverse = np.flip(temp_input, 1)
 
             backward_input = np.zeros([self.batch_size, self.seq_len, 3])
             backward_input[:, 1:, :] = temp_input_reverse[
@@ -87,16 +89,16 @@ class MRNN:
                     np.transpose(np.dstack(x[batch_idx, :, f]), [1, 2, 0]),
                     dtype=tf.float32,
                 )
-
-                outputs = rnn(forward_input_tensor, backward_input_tensor)
+                # * model call
+                outputs = rnn((forward_input_tensor, backward_input_tensor))
                 step_loss = tf.sqrt(
                     tf.reduce_mean(
                         tf.square(mask_tensor * outputs - mask_tensor * target_tensor)
                     )
                 )
 
-                gradients = tape.gradient(step_loss, rnn.trainable_variables)
-                optimizer.apply_gradients(zip(gradients, rnn.trainable_variables))
+            gradients = tape.gradient(step_loss, rnn.trainable_variables)
+            optimizer.apply_gradients(zip(gradients, rnn.trainable_variables))
 
             if i % 100 == 0:  # Print loss every 100 iterations
                 print(f"Iteration {i}, Loss: {step_loss.numpy()}")
@@ -285,7 +287,7 @@ class MRNN:
         rnn_imputed_x = self.rnn_predict(x, m, t)
 
         # Reshape the data for FC predict
-        x = np.reshape(x, [self.no * self.seq_len, self.dim])
+        x_input = np.reshape(x, [self.no * self.seq_len, self.dim])
         rnn_imputed_x = np.reshape(rnn_imputed_x, [self.no * self.seq_len, self.dim])
         m = np.reshape(m, [self.no * self.seq_len, self.dim])
 

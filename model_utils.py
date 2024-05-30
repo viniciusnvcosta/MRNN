@@ -15,7 +15,7 @@ Contact: jsyoon0823@gmail.com
 """
 
 import tensorflow as tf
-from keras import Layer
+from keras import layers
 from keras import initializers
 import numpy as np
 
@@ -49,7 +49,7 @@ def initial_point_interpolation(x, m, t, imputed_x):
     return imputed_x
 
 
-class biGRUCell(Layer):
+class biGRUCell(layers.Layer):
     """Bi-directional GRU cell object.
 
     Attributes:
@@ -58,15 +58,20 @@ class biGRUCell(Layer):
       - target_size = Output vector size
     """
 
-    def __init__(self, input_size, hidden_layer_size, target_size, **kwargs):
-        super(biGRUCell, self).__init__(**kwargs)
+    def __init__(self, input_size, hidden_layer_size, target_size):
+        super(biGRUCell, self).__init__()
+        # Builder method for the layer
 
         # Initialization of given values
         self.input_size = input_size
         self.hidden_layer_size = hidden_layer_size
         self.target_size = target_size
 
-        # Weights and Bias for input and hidden tensor for forward pass
+        # Initialize weights and biases for forward and backward GRU cells
+        self.init_weights()
+
+    def init_weights(self):
+        # Foward GRU weights and biases
         self.Wr = self.add_weight(
             shape=[self.input_size, self.hidden_layer_size],
             initializer=initializers.Zeros(),
@@ -124,7 +129,7 @@ class biGRUCell(Layer):
             trainable=True,
         )
 
-        # Weights and Bias for input and hidden tensor for backward pass
+        # Backward GRU weights and biases
         self.Wr1 = self.add_weight(
             shape=[self.input_size, self.hidden_layer_size],
             initializer=initializers.Zeros(),
@@ -180,7 +185,7 @@ class biGRUCell(Layer):
             trainable=True,
         )
 
-        # Weights for output layers
+        # Output layer weights and biases
         self.Wo = self.add_weight(
             shape=[self.hidden_layer_size * 2, self.target_size],
             initializer=initializers.TruncatedNormal(mean=0.0, stddev=0.01),
@@ -194,24 +199,11 @@ class biGRUCell(Layer):
             trainable=True,
         )
 
-    # def build(self, input_shape):
-    #     # Placeholder for input vector with shape[batch, seq, embeddings]
-    #     self._inputs = self.add_weight(
-    #         shape=[None, None, self.input_size],
-    #         initializer=initializers.Zeros(),
-    #         trainable=False,
-    #         name="inputs",
-    #     )
-    #     self._inputs_rev = self.add_weight(
-    #         shape=[None, None, self.input_size],
-    #         initializer=initializers.Zeros(),
-    #         trainable=False,
-    #         name="inputs_rev",
-    # )
+    def call(self, inputs):
+        forward_input, backward_input = inputs
 
-    def call(self, inputs, inputs_rev):
-        processed_input = self.process_batch_input_for_rnn(inputs)
-        processed_input_rev = self.process_batch_input_for_rnn(inputs_rev)
+        processed_input = self.process_batch_input_for_rnn(forward_input)
+        processed_input_rev = self.process_batch_input_for_rnn(backward_input)
 
         # Initial hidden state
         initial_hidden = tf.matmul(
