@@ -133,6 +133,7 @@ class MRNN:
             backward_input[:, 1:, :] = temp_input_reverse[:, : (self.seq_len - 1), :]
 
             save_file_name = "tmp/mrnn_imputation/rnn_feature_" + str(f + 1) + "/"
+
             rnn = tf.saved_model.load(save_file_name)
             imputed_data = rnn(forward_input, backward_input)
 
@@ -180,11 +181,7 @@ class MRNN:
                     x_input,
                     tf.linalg.set_diag(
                         U,
-                        np.zeros(
-                            [
-                                self.dim,
-                            ]
-                        ),
+                        np.zeros([self.dim]),
                     ),
                 )
                 + tf.matmul(

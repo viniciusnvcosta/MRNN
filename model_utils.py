@@ -19,7 +19,6 @@ from keras import layers
 from keras import initializers
 import numpy as np
 
-
 def initial_point_interpolation(x, m, t, imputed_x):
     """Initial point interpolation.
 
@@ -199,6 +198,25 @@ class biGRUCell(layers.Layer):
             trainable=True,
         )
 
+    def process_batch_input_for_rnn(self, batch_input):
+        """Convert tensor for rnn training.
+
+        The transformed input should have the shape of [seq_len, batch_size, input_size].
+        Ex: [7, 128, 3]
+
+        Args:
+        - batch_input: original batch input of shape [batch_size, seq_len, input_size].
+        Ex: [128, 7, 3]
+
+        Returns:
+        - transformed_input: converted batch input for RNN
+        """
+        # this was the original code
+        # batch_input_ = tf.transpose(batch_input, [2, 0, 1])
+        # return tf.transpose(batch_input_)
+        # note: This returns the same as the original code, but it is more readable
+        return tf.transpose(batch_input, [1, 0, 2])
+
     def call(self, inputs):
         forward_input, backward_input = inputs
 
@@ -300,97 +318,3 @@ class biGRUCell(layers.Layer):
         # Current Hidden state
         current_hidden_state = u * previous_hidden_state + (1 - u) * c
         return current_hidden_state
-
-    def process_batch_input_for_rnn(self, batch_input):
-        """Convert tensor for rnn training.
-
-        The transformed input should have the shape of [no of series, seq_len, dim]
-
-        Args:
-        - batch_input: original batch input
-
-        Returns:
-        - transformed_input: converted batch input for RNN
-        """
-        # this was the original code
-        # batch_input_ = tf.transpose(batch_input, [2, 0, 1])
-        # return tf.transpose(batch_input_)
-        # note: This results in no change to the shape of the input tensor, which makes this version essentially a no-op.
-
-        return tf.transpose(batch_input, [1, 0, 2])
-
-    # --------------------------------------------------
-
-    # def get_states_f(self):
-    #     """Function to get the hidden and memory cells after forward pass.
-
-    #     Iterates through time/ sequence to get all hidden state
-
-    #     Returns:
-    #       - all_hidden_states
-    #     """
-    #     # Getting all hidden state through time
-    #     all_hidden_states = tf.scan(
-    #         self.forward_gru,
-    #         self.processed_input,
-    #         initializer=self.initial_hidden,
-    #         name="states",
-    #     )
-    #     return all_hidden_states
-
-    # def get_states_b(self):
-    #     """Function to get the hidden and memory cells after backward pass.
-
-    #     Iterates through time/ sequence to get all hidden state
-
-    #     Returns:
-    #       - all_hidden_states
-    #     """
-    #     all_hidden_memory_states = tf.scan(
-    #         self.forward_gru,
-    #         self.processed_input_rev,
-    #         initializer=self.initial_hidden,
-    #         name="states",
-    #     )
-    #     # Now reversing the states to keep those in original order
-    #     all_hidden_states = tf.reverse(all_hidden_memory_states, [1])
-    #     return all_hidden_states
-
-    # def get_concat_hidden(self):
-    #     """Function to concat the hiddenstates for backward and forward pass.
-
-    #     Returns:
-    #       - concat_hidden
-    #     """
-    #     # Getting hidden and memory for the forward pass
-    #     all_hidden_states_f = self.get_states_f()
-    #     # Getting hidden and memory for the backward pass
-    #     all_hidden_states_b = self.get_states_b()
-    #     # Concating the hidden states of forward and backward pass
-    #     concat_hidden = tf.concat([all_hidden_states_f, all_hidden_states_b], 2)
-
-    #     return concat_hidden
-
-    # def get_output(self, hidden_state):
-    #     """Function to get output from a hidden layer.
-
-    #     This function takes hidden state and returns output
-
-    #     Returns:
-    #       - output
-    #     """
-    #     output = tf.nn.sigmoid(tf.matmul(hidden_state, self.Wo) + self.bo)
-    #     return output
-
-    # def get_outputs(self):
-    #     """Function for getting all output layers.
-
-    #     Iterating through hidden states to get outputs for all timestamp
-
-    #     Returns:
-    #       - all_outputs
-    #     """
-    #     all_hidden_states = self.get_concat_hidden()
-    #     all_outputs = tf.map_fn(self.get_output, all_hidden_states)
-
-    #     return all_outputs

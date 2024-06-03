@@ -10,4 +10,6 @@
 
 for 2000 iterations
 
-forward_input =  np.dstack((x[:, :, f], m[:, :, f], t[:, :, f])) = 
+forward_input =  np.dstack((x[:, :, f], m[:, :, f], t[:, :, f]))
+
+53 patient -> 29 features -> 3 dims (x,m,t)-> 53 - 7 = 46 blocos de 7 time steps (46, 7, 3)
